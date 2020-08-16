@@ -1,0 +1,38 @@
+{
+  "numberOfOrders": 100,
+  "totalOfWeight": 2150,
+  "capacity": 100,
+  "orders": [{
+    "itemIDs": [172],
+    "totalWeight": 4,
+    "dueTimeID": 1
+  }, {
+    "itemIDs": [70, 56, 68, 98, 185, 21],
+    "totalWeight": 33,
+    "dueTimeID": 1
+  }],
+  "items": [{
+    "weight": 8
+  }],
+  "dueTimes": [
+    {
+      "id" : 1,
+      "time" : "2020/06/06 13:00:00"
+    }
+  ],
+  "orderDesign": [
+    {
+      "number": 1,
+      "percentage": 50
+    },{
+      "number": 2,
+      "percentage": 30
+    },{
+      "number": 3,
+      "percentage": 15
+    },{
+      "number": 4,
+      "percentage": 5
+    }
+  ]
+}
