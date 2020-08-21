@@ -14,10 +14,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 @JsonPropertyOrder({
         "itemIDs",
         "totalWeight",
-        "dueTimeID"
+        "dueTimeID",
+        "priority"
 })
 public class Order implements  Cloneable{
 
+    @JsonProperty("priority")
     private Integer priority;
 
     @JsonProperty("itemIDs")
@@ -29,10 +31,12 @@ public class Order implements  Cloneable{
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
+    @JsonProperty("priority")
     public void setPriority(Integer priority) {
         this.priority = priority;
     }
 
+    @JsonProperty("priority")
     public Integer getPriority() {
         return priority;
     }

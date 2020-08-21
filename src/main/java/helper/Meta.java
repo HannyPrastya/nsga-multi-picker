@@ -142,7 +142,15 @@ public class Meta {
         ArrayList<Integer> locations = new ArrayList<>();
         ArrayList<Integer> numbers = new ArrayList<>();
         for (Order o: orders) {
-            o.getItemIDs();
+            for (Integer item: o.getItemIDs()) {
+                int key = locations.indexOf(item);
+                if(key < 0){
+                    locations.add(item);
+                    numbers.add(1);
+                }else{
+                    numbers.set(key, numbers.get(key) + 1);
+                }
+            }
         }
 
         return locations;

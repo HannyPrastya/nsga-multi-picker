@@ -1,28 +1,27 @@
-import algorithm.NonSortedGeneticAlgorithm;
+import algorithm.ProposedGeneticAlgorithm;
+import algorithm.Simulator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import helper.Common;
-import model.Dataset;
-import model.DueTime;
-import model.Item;
-import model.Warehouse;
+import model.*;
 import repository.DatasetRepository;
 import repository.WarehouseRepository;
 
-import javax.xml.crypto.Data;
 import java.io.*;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws IOException, ParseException {
         ArrayList<DueTime> dueTimes = createDueTimeHourly();
         int[][] datasetList = {
-//                {50,200,2},
-                {50,200,3}
+//                {50,200,3},
+                {150,200,3}
         };
 
         for (DueTime d: dueTimes) {
@@ -39,13 +38,16 @@ public class Main {
         System.out.println("Number of Aisles : "+(wr.getWarehouse().getNumberOfVerticalAisle()+wr.getWarehouse().getNumberOfHorizontalAisle()));
 
 //        Create Dataset
-        createDataset(wr, datasetList, dueTimes);
+//        createDataset(wr, datasetList, dueTimes);
 
 //        Run Algorithm
-        runAlgorithm(datasetList);
+//        runAlgorithm(datasetList, wr.getLocations());
+
+//        Run Simulation
+        runSimulation(wr.getLocations(), wr.getWarehouse().getNumberOfRows());
     }
 
-    public static void runAlgorithm(int[][] datasetList) throws IOException {
+    public static void runAlgorithm(int[][] datasetList, ArrayList<Location> locations) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
 
         int numberOfRun = 1;
@@ -57,10 +59,14 @@ public class Main {
 
             for (int j = 0; j < numberOfRun; j++) {
                 try {
-                    NonSortedGeneticAlgorithm algo = new NonSortedGeneticAlgorithm();
+                    ProposedGeneticAlgorithm algo = new ProposedGeneticAlgorithm();
+                    algo.setLocations(locations);
                     algo.setDataset(dataset);
                     algo.start();
-                } catch (CloneNotSupportedException e) {
+                    //Converting the Object to JSONString
+                    String jsonString = mapper.writeValueAsString(algo.getElite().getBatches());
+                    System.out.println(jsonString);
+                } catch (CloneNotSupportedException | ParseException e) {
                     e.printStackTrace();
                 }
             }
@@ -122,4 +128,19 @@ public class Main {
 
         return list;
     }
+
+    public static void runSimulation(ArrayList<Location> locations, Integer rows) throws IOException, ParseException {
+        ObjectMapper mapper = new ObjectMapper();
+        Batch[] data = mapper.readValue(new File(Common.getResource("simulation.json").getPath()), Batch[].class);
+        List<Batch> batches = Arrays.asList(data);
+        Simulator simulator = new Simulator();
+        simulator.setLocations(locations);
+        simulator.setBatches(batches);
+        simulator.setNumberOfPicker(2);
+        simulator.setRows(rows);
+        simulator.start();
+
+        simulator.exportToExcel();
+    }
+
 }

@@ -16,15 +16,15 @@ import java.util.*;
 
 public class Batch implements Cloneable{
     @JsonProperty("IDs")
-    private Map<Integer, Integer> IDs = new HashMap<Integer, Integer>();
+    private TreeMap<Integer, Integer> IDs = new TreeMap<Integer, Integer>();
 
     @JsonProperty("IDs")
-    public Map<Integer, Integer> getIDs() {
+    public TreeMap<Integer, Integer> getIDs() {
         return IDs;
     }
 
     @JsonProperty("IDs")
-    public void setIDs(Map<Integer, Integer> IDs) {
+    public void setIDs(TreeMap<Integer, Integer> IDs) {
         this.IDs = IDs;
     }
 
@@ -62,7 +62,7 @@ public class Batch implements Cloneable{
         return totalWeight;
     }
 
-    @JsonProperty("orders")
+    @JsonProperty("totalWeight")
     public void setTotalWeight(int totalWeight) {
         this.totalWeight = totalWeight;
     }
@@ -75,12 +75,22 @@ public class Batch implements Cloneable{
         return totalItems;
     }
 
-    @JsonProperty("orders")
+    @JsonProperty("totalItems")
     public void setTotalItems(int totalItems) {
         this.totalItems = totalItems;
     }
 
-//    public void refreshItems(){
+    private Date end;
+
+    public Date getEnd() {
+        return end;
+    }
+
+    public void setEnd(Date end) {
+        this.end = end;
+    }
+
+    //    public void refreshItems(){
 //        setIDs(new HashSet<>());
 //        totalWeight = 0;
 //        for (Order order: getOrders()) {

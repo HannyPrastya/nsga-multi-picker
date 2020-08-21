@@ -45,4 +45,9 @@ public class Common {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return dateFormat.format(date);
     }
+
+    public static String convertTimeToString(Date date) {
+        DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+        return dateFormat.format(date);
+    }
 }

@@ -116,6 +116,36 @@ public class Location {
         this.position = position;
     }
 
+    private Integer shortest;
+
+    public void setShortest(Integer shortest) {
+        this.shortest = shortest;
+    }
+
+    public Integer getShortest() {
+        return shortest;
+    }
+
+    private Integer groupIndex;
+
+    public void setGroupIndex(Integer groupIndex) {
+        this.groupIndex = groupIndex;
+    }
+
+    public Integer getGroupIndex() {
+        return groupIndex;
+    }
+
+    private Integer opposite;
+
+    public void setOpposite(Integer opposite) {
+        this.opposite = opposite;
+    }
+
+    public Integer getOpposite() {
+        return opposite;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getAdditionalProperties() {
         return this.additionalProperties;
