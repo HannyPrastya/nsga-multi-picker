@@ -28,7 +28,7 @@ public class DatasetRepository {
             ArrayList<Integer> itemIDs = new ArrayList<>();
             int weight = 0;
 
-            int n = Common.randInt(2, dataset.getNumberOfItemPerOrder());
+            int n = Common.randInt(1, dataset.getNumberOfItemPerOrder());
 
             for (int j = 0; j < n; j++){
                 int id = Common.randInt(1, dataset.getItems().size()-1);

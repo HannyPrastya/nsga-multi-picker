@@ -37,6 +37,12 @@ public class Picker {
     private Integer velocity;
     private ArrayList<WaitingTime> waitingTimes;
     private ArrayList<History> histories;
+    private Batch lastBatch;
+
+//    0. S-Shape
+//    1. Largest Gap
+//    2. Combined +
+    private Integer RoutingType;
 
     public Picker(){
         log = false;
@@ -92,12 +98,24 @@ public class Picker {
         return histories;
     }
 
+    public Integer getState() {
+        return state;
+    }
+
+    public Integer getRestSecond() {
+        return restSecond;
+    }
+
     public boolean isFinished(){
         return finish && state == 0;
     }
 
     public Integer getDestination(){
         return (Integer) batches.get(currentBatchIndex).getIDs().keySet().toArray()[currentItemIndex];
+    }
+
+    public Batch getCurrentBatch(){
+        return batches.get(currentBatchIndex-1);
     }
 
     public void decideNextMove(){
@@ -122,6 +140,7 @@ public class Picker {
         }else {
             origin = destination;
             destination = 0;
+            currentBatchIndex += 1;
             finish = true;
         }
     }
@@ -197,7 +216,7 @@ public class Picker {
             if(destination == 0){
                 createNewHistory("back to depot");
             }else{
-                createNewHistory("picking");
+                createNewHistory("picking another aisle");
             }
 
             if(log){
@@ -225,7 +244,7 @@ public class Picker {
 
                 restSecond -= getStart();
                 restSecond -= getEnd();
-                createNewHistory("picking");
+                createNewHistory("picking another aisle");
                 restSecond = restSecond * velocity;
                 if(log){
                     System.out.println("TRAVELING - 2 : "+restSecond+" WITH TOTAL : "+locations.get(origin).getDistances().get(destination));
@@ -243,6 +262,7 @@ public class Picker {
                 state = 4;
                 restSecond = pickingTimes[Common.randInt(0, pickingTimes.length - 1)] * batches.get(currentBatchIndex).getIDs().get(destination);
                 histories.get(histories.size() - 1).setPickingTime(restSecond);
+
                 if(log){
                     System.out.println("PICKING - 4 : "+restSecond);
                 }
@@ -269,17 +289,17 @@ public class Picker {
                 restSecond -= getStart();
                 restSecond -= getEnd();
                 restSecond = restSecond * velocity;
-
             }else if(state == 6){
                 state = 7;
                 restSecond = unloadingTime;
                 createNewHistory("unloading");
-                histories.get(histories.size() - 1).setPickingTime(restSecond);
+                histories.get(histories.size() - 1).setTotalTime(restSecond);
                 if(log){
                     System.out.println("UNLOADING - 7 : "+restSecond);
                 }
             }else if(state == 7){
                 origin = 0;
+                getCurrentBatch().setEnd((Date) calendar.getTime().clone());
                 if(finish){
                    state = 0;
                    destination = null;

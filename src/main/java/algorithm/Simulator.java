@@ -4,9 +4,7 @@ import helper.Common;
 import helper.ExcelExporter;
 import model.Batch;
 import model.Location;
-import model.Order;
 import model.Picker;
-import repository.WarehouseRepository;
 
 import java.text.ParseException;
 import java.util.*;
@@ -16,19 +14,29 @@ public class Simulator {
     private int numberOfPicker;
     private Picker[] pickers;
     private List<Batch> batches;
-    private final int loadingTime;
-    private final int unloadingTime;
     private final Date startDate;
+    private Integer[] aisles;
+    private Integer numberOfAisle;
     private Integer rows;
     private Boolean log;
 
     public Simulator() throws ParseException {
-        loadingTime = 10;
-        unloadingTime = 10;
         log = true;
-
         String dateStr = "2020-01-01 08:00:00";
         startDate = Common.convertStringToDate(dateStr);
+    }
+
+    public void setLog(Boolean log) {
+        this.log = log;
+    }
+
+    public void setNumberOfAisle(Integer numberOfAisle) {
+        this.numberOfAisle = numberOfAisle;
+        aisles = new Integer[this.numberOfAisle];
+
+        for (int i = 0; i < this.numberOfAisle; i++) {
+            aisles[i] = -1;
+        }
     }
 
     public void setRows(Integer rows) {
@@ -47,24 +55,32 @@ public class Simulator {
         this.batches = batches;
     }
 
+    public Picker[] getPickers() {
+        return pickers;
+    }
+
     public void start() {
         initPickers();
+        routing();
         boolean flag = true;
         while (flag){
             boolean finished = true;
             for (Picker picker : pickers) {
-
                 if(!picker.isFinished()){
                     boolean movable = true;
-                    for (Picker oPick : pickers) {
-                        if(!oPick.getId().equals(picker.getId()) && oPick.getCurrentAisle().equals(picker.getId()) && picker.getCurrentAisle() >= 0){
-                            movable = false;
-                            break;
-                        }
+                    if(picker.getState() == 3 && aisles[picker.getCurrentAisle()] >= 0){
+                        movable = aisles[picker.getCurrentAisle()].equals(picker.getId());
                     }
 
                     if(movable){
                         picker.move();
+                        if(picker.getState() == 3 || picker.getState() == 4 || (picker.getState() == 5 && picker.getRestSecond() > 0)){
+                            if(aisles[picker.getCurrentAisle()] == -1){
+                                aisles[picker.getCurrentAisle()] = picker.getId();
+                            }
+                        }else if(picker.getState() == 5 && picker.getRestSecond() <= 0){
+                            aisles[picker.getCurrentAisle()] = -1;
+                        }
                     }else{
                         picker.hold();
                     }
@@ -106,6 +122,10 @@ public class Simulator {
                 System.out.println("First destination list : "+picker.getBatches().get(0).getIDs());
             }
         }
+    }
+
+    public void routing(){
+
     }
 
     public void exportToExcel(){

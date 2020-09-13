@@ -15,6 +15,27 @@ import java.util.*;
 })
 
 public class Batch implements Cloneable{
+
+    private Map<Integer, ArrayList<Integer>> aisles = new HashMap<>();
+
+    public void setAisles(Map<Integer, ArrayList<Integer>> aisles) {
+        this.aisles = aisles;
+    }
+
+    public Map<Integer, ArrayList<Integer>> getAisles() {
+        return aisles;
+    }
+
+    private ArrayList<Integer> routedIDs = new ArrayList<>();
+
+    public ArrayList<Integer> getRoutedIDs() {
+        return routedIDs;
+    }
+
+    public void setRoutedIDs(ArrayList<Integer> routedIDs) {
+        this.routedIDs = routedIDs;
+    }
+
     @JsonProperty("IDs")
     private TreeMap<Integer, Integer> IDs = new TreeMap<Integer, Integer>();
 

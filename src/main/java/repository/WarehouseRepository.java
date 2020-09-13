@@ -48,10 +48,10 @@ public class WarehouseRepository {
         depot.setY(y);
         depot.setRowIndex(-1);
         depot.setDirection(-1);
-        depot.setGroupIndex(0);
+        depot.setGroupIndex(-1);
         locations.add(depot);
 
-        int groupIndex = 1;
+        int groupIndex = 0;
         boolean flip = false;
         int flipper = ((warehouse.getNumberOfRows()*warehouse.getNumberOfHorizontalAisle())+(warehouse.getNumberOfHorizontalAisle()*2)+1)+warehouse.getNumberOfRows();
 

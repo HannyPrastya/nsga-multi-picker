@@ -1,3 +1,4 @@
+import algorithm.NonSortedGeneticAlgorithm;
 import algorithm.ProposedGeneticAlgorithm;
 import algorithm.Simulator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,11 +18,13 @@ import java.util.Calendar;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException, CloneNotSupportedException {
         ArrayList<DueTime> dueTimes = createDueTimeHourly();
+
+//        Number of Orders, Capacity in 100 = 1 kg, variant
         int[][] datasetList = {
 //                {50,200,3},
-                {150,200,3}
+                {200,200,1}
         };
 
         for (DueTime d: dueTimes) {
@@ -29,25 +32,28 @@ public class Main {
         }
 
         WarehouseRepository wr = new WarehouseRepository();
-        wr.getWarehouse().setNumberOfRows(4);
-        wr.getWarehouse().setNumberOfHorizontalAisle(1);
-        wr.getWarehouse().setNumberOfVerticalAisle(2);
+        wr.getWarehouse().setNumberOfRows(8);
+        wr.getWarehouse().setNumberOfHorizontalAisle(2);
+        wr.getWarehouse().setNumberOfVerticalAisle(4);
 
         wr.createLocations();
         System.out.println("Number of Locations : "+(wr.getLocations().size() - 1));
         System.out.println("Number of Aisles : "+(wr.getWarehouse().getNumberOfVerticalAisle()+wr.getWarehouse().getNumberOfHorizontalAisle()));
 
+        int totalAisles = (wr.getWarehouse().getNumberOfHorizontalAisle() + 1) * (wr.getWarehouse().getNumberOfVerticalAisle() + 1);
+
 //        Create Dataset
 //        createDataset(wr, datasetList, dueTimes);
 
 //        Run Algorithm
-//        runAlgorithm(datasetList, wr.getLocations());
+
+        runAlgorithm(datasetList, wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles, wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
 
 //        Run Simulation
-        runSimulation(wr.getLocations(), wr.getWarehouse().getNumberOfRows());
+//        runSimulation(wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles);
     }
 
-    public static void runAlgorithm(int[][] datasetList, ArrayList<Location> locations) throws IOException {
+    public static void runAlgorithm(int[][] datasetList, ArrayList<Location> locations, Integer rows, Integer aisles, Integer horizontal, Integer vertical) throws IOException, CloneNotSupportedException, ParseException {
         ObjectMapper mapper = new ObjectMapper();
 
         int numberOfRun = 1;
@@ -58,17 +64,29 @@ public class Main {
             Dataset dataset = mapper.readValue(new File(Common.getResource(filename).getPath()), Dataset.class);
 
             for (int j = 0; j < numberOfRun; j++) {
-                try {
-                    ProposedGeneticAlgorithm algo = new ProposedGeneticAlgorithm();
-                    algo.setLocations(locations);
-                    algo.setDataset(dataset);
-                    algo.start();
-                    //Converting the Object to JSONString
-                    String jsonString = mapper.writeValueAsString(algo.getElite().getBatches());
-                    System.out.println(jsonString);
-                } catch (CloneNotSupportedException | ParseException e) {
-                    e.printStackTrace();
-                }
+                NonSortedGeneticAlgorithm algo = new NonSortedGeneticAlgorithm();
+                algo.setLocations(locations);
+                algo.setDataset(dataset);
+
+                algo.getSimulator().setLocations(locations);
+                algo.getSimulator().setNumberOfPicker(2);
+                algo.getSimulator().setRows(rows);
+                algo.getSimulator().setNumberOfAisle(aisles);
+                algo.getRouter().setNumberOfHorizontalAisle(horizontal);
+                algo.getRouter().setNumberOfVerticalAisle(vertical);
+                algo.getRouter().setTotalAisle(aisles);
+                algo.start();
+//                try {
+//                    ProposedGeneticAlgorithm algo = new ProposedGeneticAlgorithm();
+//                    algo.setLocations(locations);
+//                    algo.setDataset(dataset);
+//                    algo.start();
+//                    //Converting the Object to JSONString
+//                    String jsonString = mapper.writeValueAsString(algo.getElite().getBatches());
+//                    System.out.println(jsonString);
+//                } catch (CloneNotSupportedException | ParseException e) {
+//                    e.printStackTrace();
+//                }
             }
         }
     }
@@ -97,12 +115,12 @@ public class Main {
 
             try {
                 try (Writer writer = new BufferedWriter(
-                        new OutputStreamWriter(
-                                new FileOutputStream(
-                                        "./src/main/resources/" + list[0] + "-" + list[1] + "-" + list[2] + ".json"
-                                ),
-                                StandardCharsets.UTF_8
-                        )
+                    new OutputStreamWriter(
+                        new FileOutputStream(
+                            "./src/main/resources/" + list[0] + "-" + list[1] + "-" + list[2] + ".json"
+                        ),
+                        StandardCharsets.UTF_8
+                    )
                 )
                 ) {
                     writer.write(json);
@@ -129,7 +147,7 @@ public class Main {
         return list;
     }
 
-    public static void runSimulation(ArrayList<Location> locations, Integer rows) throws IOException, ParseException {
+    public static void runSimulation(ArrayList<Location> locations, Integer rows, Integer aisles) throws IOException, ParseException {
         ObjectMapper mapper = new ObjectMapper();
         Batch[] data = mapper.readValue(new File(Common.getResource("simulation.json").getPath()), Batch[].class);
         List<Batch> batches = Arrays.asList(data);
@@ -138,9 +156,9 @@ public class Main {
         simulator.setBatches(batches);
         simulator.setNumberOfPicker(2);
         simulator.setRows(rows);
+        simulator.setNumberOfAisle(aisles);
         simulator.start();
 
         simulator.exportToExcel();
     }
-
 }

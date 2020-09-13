@@ -91,7 +91,7 @@ public class ExcelExporter {
             row.createCell(5).setCellValue(history.getTravelingTime());
             row.createCell(6).setCellValue(history.getWaitingTime());
             row.createCell(7).setCellValue(history.getPickingTime());
-            row.createCell(8).setCellValue(history.getTotalTime());
+            row.createCell(8).setCellValue(history.getTotalTime()+history.getTravelingTime()+history.getPickingTime()+history.getWaitingTime());
             row.createCell(9).setCellValue(Common.convertTimeToString(history.getStartTime()));
             row.createCell(10).setCellValue(Common.convertTimeToString(history.getEndTime()));
         }

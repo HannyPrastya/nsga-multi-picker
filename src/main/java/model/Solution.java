@@ -25,8 +25,10 @@ public class Solution implements Cloneable{
     private ArrayList<Double> objectiveValues = new ArrayList<>();
     private int maxNumberOfBatches = 0;
     private ArrayList<DueTime> dueTimes;
+    private boolean simulated;
 
     public Solution(){
+        simulated = false;
         objectiveValues.add(0.0);
         objectiveValues.add(0.0);
     }
@@ -123,6 +125,14 @@ public class Solution implements Cloneable{
         return dueTimes;
     }
 
+    public boolean isSimulated() {
+        return simulated;
+    }
+
+    public void setSimulated(boolean simulated) {
+        this.simulated = simulated;
+    }
+
     public void printGens(){
         String del = "";
         for (Integer i : getChromosome()) {
@@ -135,7 +145,8 @@ public class Solution implements Cloneable{
     public Solution clone() throws CloneNotSupportedException {
         Solution cloned = (Solution) super.clone();
         cloned.setChromosome((ArrayList<Integer>) chromosome.clone());
-
+        cloned.setObjectiveValues(new ArrayList<>());
+        cloned.simulated = false;
         return cloned;
     }
 
