@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 })
 public class Dataset {
 
+    @JsonProperty("numberOfPickers")
+    private Integer numberOfPickers;
     @JsonProperty("numberOfOrders")
     private Integer numberOfOrders;
     @JsonProperty("numberOfItemPerOrder")
@@ -38,6 +40,16 @@ public class Dataset {
     private List<DueTime> dueTimes = null;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+
+    @JsonProperty("numberOfPickers")
+    public Integer getNumberOfPickers() {
+        return numberOfPickers;
+    }
+
+    @JsonProperty("numberOfPickers")
+    public void setNumberOfPickers(Integer numberOfPickers) {
+        this.numberOfPickers = numberOfPickers;
+    }
 
     @JsonProperty("numberOfOrders")
     public Integer getNumberOfOrders() {

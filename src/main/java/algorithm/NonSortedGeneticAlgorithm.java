@@ -2,9 +2,11 @@ package algorithm;
 
 import constant.Configuration;
 import helper.Common;
+import helper.ExcelExporter;
 import helper.Meta;
 import model.*;
 
+import javax.xml.crypto.Data;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -14,18 +16,16 @@ public class NonSortedGeneticAlgorithm {
     private static final int INFERIOR = 2;
     private static final int NON_DOMINATED = 3;
 
+    private List<List<Double>> report;
     private Dataset dataset;
     private ArrayList<Location> locations;
     private ArrayList<Solution> population;
-    private final int numberOfPopulation = 5;
+    private final int numberOfPopulation = Configuration.numberOfPopulation;
+    private final int numberOfGeneration = Configuration.numberOfGeneration;
     private ArrayList<Solution> offsprings;
     private int crossover = 60;
-    Map<String, Integer> memory = new HashMap<String, Integer>();
-    Map<String, Double[]> memoryChromosome = new HashMap<String, Double[]>();
-    Map<String, Double[]> fitnessMemory = new HashMap<String, Double[]>();
-    private int shortestDistance = 999999999;
     int currentGeneration = 0;
-    boolean log = false;
+    boolean log = true;
 
     private final Simulator simulator;
     private final RoutingAlgorithm router;
@@ -42,7 +42,7 @@ public class NonSortedGeneticAlgorithm {
 
     public void setLocations(ArrayList<Location> locations) {
         this.locations = locations;
-        this.router.setLocations(locations);
+        this.router.setLocations(this.locations);
     }
 
     public Simulator getSimulator() {
@@ -54,57 +54,22 @@ public class NonSortedGeneticAlgorithm {
     }
 
     public void start() throws CloneNotSupportedException, ParseException {
+        report = new ArrayList<>();
         this.setClusters();
         this.population = Meta.createNewPopulation(numberOfPopulation, dataset.getOrders().size());
 
-        int numberOfGeneration = 50;
         while (currentGeneration < numberOfGeneration) {
-            if(log){
-                System.out.println("//start");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-            }
             doOperators();
-            if(log){
-                System.out.println("//after do operators");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-            }
             population.addAll(offsprings);
             decoding();
-            if(log){
-                System.out.println("//after decoding");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                    System.out.println(solution.getBatches());
-                });
-            }
             routing();
-            if(log){
-                System.out.println("//after routing");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-            }
             simulate();
-            if(log){
-                System.out.println("//after simulate");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-            }
             preparePopulation();
-            if(log){
-                System.out.println("//after prepare");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-            }
             population = getChildrenFromCombinedPopulation();
+            report();
+
             if(log){
-                System.out.println("//after get top population");
+                System.out.println("//after top population");
                 population.forEach(solution -> {
                     System.out.println(solution.getObjectiveValues());
                 });
@@ -112,6 +77,127 @@ public class NonSortedGeneticAlgorithm {
             ++currentGeneration;
             System.out.println("////////////////////////");
         }
+
+        exportExcel();
+    }
+
+    public void report(){
+        List<Double> row = new ArrayList<>();
+
+        Double minObjective1 = null;
+        Double maxObjective1 = null;
+        Double avgObjective1 = 0.0;
+        Double minObjective2 = null;
+        Double maxObjective2 = null;
+        Double avgObjective2 = 0.0;
+
+        for (Solution solution : population) {
+            row.add(solution.getObjectiveValues().get(0));
+            row.add(solution.getObjectiveValues().get(1));
+
+            if(maxObjective1 == null){
+                maxObjective1 = solution.getObjectiveValues().get(0);
+            }
+
+            if(minObjective1 == null){
+                minObjective1 = solution.getObjectiveValues().get(0);
+            }
+
+            if(maxObjective2 == null){
+                maxObjective2 = solution.getObjectiveValues().get(1);
+            }
+
+            if(minObjective2 == null){
+                minObjective2 = solution.getObjectiveValues().get(1);
+            }
+
+            if(solution.getObjectiveValues().get(0) > maxObjective1){
+                maxObjective1 = solution.getObjectiveValues().get(0);
+            }
+
+            if(solution.getObjectiveValues().get(0) < minObjective1){
+                minObjective1 = solution.getObjectiveValues().get(0);
+            }
+
+            if(solution.getObjectiveValues().get(1) > maxObjective2){
+                maxObjective2 = solution.getObjectiveValues().get(1);
+            }
+
+            if(solution.getObjectiveValues().get(1) < minObjective2){
+                minObjective2 = solution.getObjectiveValues().get(1);
+            }
+
+            avgObjective1 += solution.getObjectiveValues().get(0);
+            avgObjective2 += solution.getObjectiveValues().get(1);
+        }
+
+        row.add(minObjective1);
+        row.add(maxObjective1);
+        row.add(avgObjective1/population.size());
+        row.add(minObjective2);
+        row.add(maxObjective2);
+        row.add(avgObjective2/population.size());
+
+        report.add(row);
+    }
+
+    public void exportExcel(){
+        ExcelExporter excelExporter = new ExcelExporter();
+
+//        OBJECTIVES
+        List<String> columns = new ArrayList<>();
+        columns.add("GEN");
+        for (int i = 0; i < numberOfPopulation; i++) {
+            columns.add("WT-"+i);
+            columns.add("TARDINESS-"+i);
+        }
+        columns.add("MIN WAITING TIME (S)");
+        columns.add("MAX WAITING TIME (S)");
+        columns.add("AVG WAITING TIME (S)");
+        columns.add("MIN TARDINESS (S)");
+        columns.add("MAX TARDINESS (S)");
+        columns.add("AVG TARDINESS (S)");
+
+        excelExporter.setColumns(columns.toArray(new String[0]));
+        excelExporter.setDoubleDataset(report);
+        excelExporter.startDoubleDataset("Objectives");
+
+//        PARETO SOLUTIONS
+        excelExporter.setColumns(new String[]{"SOLUTION", "WAITING TIME", "TARDINESS"});
+
+        List<List<Double>> ds = new ArrayList<>();
+        for (Solution solution : population) {
+            ds.add(solution.getObjectiveValues());
+        }
+        excelExporter.setDoubleDataset(ds);
+        excelExporter.startDoubleDataset("Pareto Solutions");
+
+//        TRAFFIC
+        columns = new ArrayList<>();
+        columns.add("SOLUTION");
+        List<HashMap<Integer, Integer>> hids = new ArrayList<>();
+        for (Solution solution : population) {
+            hids.add(solution.getTraffic());
+        }
+
+        excelExporter.setColumns(columns.toArray(new String[0]));
+        excelExporter.setHashIntegerDataset(hids);
+        excelExporter.startHashIntegerDataset("Traffic");
+
+//        CONGESTION
+        columns = new ArrayList<>();
+        columns.add("SOLUTION");
+        hids = new ArrayList<>();
+        for (Solution solution : population) {
+            System.out.println(solution.getCongestion());
+            hids.add(solution.getCongestion());
+        }
+
+        excelExporter.setColumns(columns.toArray(new String[0]));
+        excelExporter.setHashIntegerDataset(hids);
+        excelExporter.startHashIntegerDataset("Congestion");
+
+        excelExporter.export("NSGA"+"-"+dataset.getOrders().size()+"-"+dataset.getCapacity()+"-"+simulator.getPickers().length);
     }
 
     private void setClusters() {
@@ -286,6 +372,10 @@ public class NonSortedGeneticAlgorithm {
                 this.simulator.setBatches(sol.getBatches());
                 this.simulator.start();
 
+//                GET DATA
+                sol.setCongestion(simulator.getCongestion());
+                sol.setTraffic(simulator.getTraffic());
+
                 double totalWaitingTime = 0;
                 double tardiness = 0;
                 for (int i = 0; i < simulator.getPickers().length; i++) {
@@ -295,7 +385,7 @@ public class NonSortedGeneticAlgorithm {
                     }
                     for (Batch batch : picker.getBatches()) {
                         for (Order order : batch.getOrders()) {
-                            long tard = this.dataset.getDueTimes().get(order.getDueTimeID() - 1).getTimeObject().getTime() - batch.getEnd().getTime();
+                            long tard = batch.getEnd().getTime() - this.dataset.getDueTimes().get(order.getDueTimeID() - 1).getTimeObject().getTime();
                             tardiness += tard > 0 ? ((double) tard / 1000) : 0;
                         }
                     }
@@ -314,14 +404,13 @@ public class NonSortedGeneticAlgorithm {
         }
     }
 
-    public ArrayList<Solution> preparePopulation() {
+    public void preparePopulation() {
         Solution[] populace = population.toArray(new Solution[population.size()]);
 
         fastNonDominatedSort(populace);
         crowdingDistanceAssignment(populace);
 
-        randomizedQuickSortForRank(population, 0, populace.length - 1);
-        return population;
+        randomizedQuickSortForRank(population, 0, population.size() - 1);
     }
 
 //    public ArrayList<Solution> getChildrenFromCombinedPopulation() {
@@ -338,7 +427,11 @@ public class NonSortedGeneticAlgorithm {
 //    }
 
     public ArrayList<Solution> getChildrenFromCombinedPopulation() {
+        int lastNonDominatedSetRank = population.get(population.size() - 1).getRank();
         ArrayList<Solution> populace = new ArrayList<>();
+
+        sortForCrowdingDistance(population, lastNonDominatedSetRank);
+
         for(int i = 0; i < numberOfPopulation; i++){
             populace.add(population.get(i));
         }
@@ -403,23 +496,23 @@ public class NonSortedGeneticAlgorithm {
 
     private static boolean isDominant(final Solution chromosome1, final Solution chromosome2) {
         boolean isDominant = true;
-        boolean atleastOneIsLarger = false;
+        boolean atleastOne = false;
 
         for(int i = 0; i < Configuration.numberOfObjetives; i++) {
             if(Configuration.objTypes[i]){
                 if(chromosome1.getObjectiveValues().get(i) > chromosome2.getObjectiveValues().get(i)) {
                     isDominant = false;
                     break;
-                } else if(!atleastOneIsLarger && (chromosome1.getObjectiveValues().get(i) < chromosome2.getObjectiveValues().get(i))) atleastOneIsLarger = true;
+                } else if(!atleastOne && (chromosome1.getObjectiveValues().get(i) < chromosome2.getObjectiveValues().get(i))) atleastOne = true;
             }else {
                 if(chromosome1.getObjectiveValues().get(i) < chromosome2.getObjectiveValues().get(i)) {
                     isDominant = false;
                     break;
-                } else if(!atleastOneIsLarger && (chromosome1.getObjectiveValues().get(i) > chromosome2.getObjectiveValues().get(i))) atleastOneIsLarger = true;
+                } else if(!atleastOne && (chromosome1.getObjectiveValues().get(i) > chromosome2.getObjectiveValues().get(i))) atleastOne = true;
             }
         }
 
-        return isDominant && atleastOneIsLarger;
+        return isDominant && atleastOne;
     }
 
 

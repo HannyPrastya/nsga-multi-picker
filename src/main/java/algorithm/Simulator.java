@@ -5,6 +5,7 @@ import helper.ExcelExporter;
 import model.Batch;
 import model.Location;
 import model.Picker;
+import model.WaitingTime;
 
 import java.text.ParseException;
 import java.util.*;
@@ -19,6 +20,8 @@ public class Simulator {
     private Integer numberOfAisle;
     private Integer rows;
     private Boolean log;
+    private HashMap<Integer, Integer> traffic;
+    private HashMap<Integer, Integer> congestion;
 
     public Simulator() throws ParseException {
         log = true;
@@ -37,6 +40,10 @@ public class Simulator {
         for (int i = 0; i < this.numberOfAisle; i++) {
             aisles[i] = -1;
         }
+    }
+
+    public HashMap<Integer, Integer> getCongestion() {
+        return congestion;
     }
 
     public void setRows(Integer rows) {
@@ -59,9 +66,12 @@ public class Simulator {
         return pickers;
     }
 
+    public HashMap<Integer, Integer> getTraffic() {
+        return traffic;
+    }
+
     public void start() {
         initPickers();
-        routing();
         boolean flag = true;
         while (flag){
             boolean finished = true;
@@ -95,6 +105,8 @@ public class Simulator {
                 flag = false;
             }
         }
+        calculateTraffic();
+        calculateCongestion();
     }
 
     private void initPickers(){
@@ -119,13 +131,37 @@ public class Simulator {
 
         for (Picker picker : pickers) {
             if(log){
-                System.out.println("First destination list : "+picker.getBatches().get(0).getIDs());
+                System.out.println("First destination list : "+picker.getBatches().get(0).getRoutedIDs());
             }
         }
     }
 
-    public void routing(){
+    private void calculateTraffic(){
+        traffic = new HashMap<>();
 
+        for (Picker picker : pickers) {
+            for (Map.Entry<Integer, Integer> entry : picker.getTraffic().entrySet()) {
+                int groupIndex = entry.getKey();
+                if(!traffic.containsKey(groupIndex)){
+                    traffic.put(groupIndex, entry.getValue());
+                }
+                traffic.put(groupIndex, (traffic.get(groupIndex) + entry.getValue()));
+            }
+        }
+    }
+
+    public void calculateCongestion(){
+        congestion = new HashMap<>();
+
+        for (Picker picker : pickers) {
+            for (WaitingTime time : picker.getWaitingTimes()) {
+                int groupIndex = time.getAisle();
+                if(!congestion.containsKey(groupIndex)){
+                    congestion.put(groupIndex, time.getSeconds());
+                }
+                congestion.put(groupIndex, (congestion.get(groupIndex) + time.getSeconds()));
+            }
+        }
     }
 
     public void exportToExcel(){
@@ -144,6 +180,6 @@ public class Simulator {
         }
 
         excelExporter.startExportTimeline();
-        excelExporter.export();
+        excelExporter.export("Simulator");
     }
 }

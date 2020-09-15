@@ -5,6 +5,7 @@ import helper.Common;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 
 public class Picker {
 //    0. idle at depot
@@ -38,6 +39,7 @@ public class Picker {
     private ArrayList<WaitingTime> waitingTimes;
     private ArrayList<History> histories;
     private Batch lastBatch;
+    private HashMap<Integer, Integer> traffic;
 
 //    0. S-Shape
 //    1. Largest Gap
@@ -57,6 +59,10 @@ public class Picker {
         this.rows = rows;
     }
 
+    public HashMap<Integer, Integer> getTraffic() {
+        return traffic;
+    }
+
     public void initPicker(){
         velocity = 3;
         origin = 0;
@@ -72,6 +78,7 @@ public class Picker {
         histories = new ArrayList<>();
         loadingTime = 300;
         unloadingTime = 300;
+        traffic = new HashMap<>();
     }
 
     public ArrayList<Batch> getBatches() {
@@ -111,7 +118,7 @@ public class Picker {
     }
 
     public Integer getDestination(){
-        return (Integer) batches.get(currentBatchIndex).getIDs().keySet().toArray()[currentItemIndex];
+        return (Integer) batches.get(currentBatchIndex).getRoutedIDs().get(currentItemIndex);
     }
 
     public Batch getCurrentBatch(){
@@ -123,7 +130,7 @@ public class Picker {
         if(state == 0){
             destination = getDestination();
 //        next item exists
-        }else if(currentItemIndex < batches.get(currentBatchIndex).getIDs().size() - 1){
+        }else if(currentItemIndex < batches.get(currentBatchIndex).getRoutedIDs().size() - 1){
             currentItemIndex += 1;
             origin = destination;
             destination = getDestination();
@@ -134,7 +141,7 @@ public class Picker {
             origin = destination;
             destination = 0;
             if(log){
-                System.out.println("NEXT BATCH : "+batches.get(currentBatchIndex).getIDs());
+                System.out.println("NEXT BATCH : "+batches.get(currentBatchIndex).getRoutedIDs());
             }
 //        there is no anything left
         }else {
@@ -246,6 +253,7 @@ public class Picker {
                 restSecond -= getEnd();
                 createNewHistory("picking another aisle");
                 restSecond = restSecond * velocity;
+                watchTraffic();
                 if(log){
                     System.out.println("TRAVELING - 2 : "+restSecond+" WITH TOTAL : "+locations.get(origin).getDistances().get(destination));
                 }
@@ -280,7 +288,9 @@ public class Picker {
                     }
                 }else{
                     state = 2;
+                    watchTraffic();
                     if(log){
+                        watchTraffic();
                         System.out.println("TRAVELING - 2 : "+restSecond+" WITH TOTAL : "+locations.get(origin).getDistances().get(destination));
                     }
                 }
@@ -358,6 +368,14 @@ public class Picker {
         waitingTimes.get(waitingTimes.size() - 1).setEndTime((Date) calendar.getTime().clone());
     }
 
+    public void watchTraffic(){
+        int groupIndex = locations.get(destination).getGroupIndex();
+        if(!traffic.containsKey(groupIndex)){
+            traffic.put(groupIndex, 1);
+        }
+        traffic.put(groupIndex, (traffic.get(groupIndex) + 1));
+    }
+
     public void createNewWaitingTime(){
         WaitingTime waitingTime = new WaitingTime();
         waitingTime.setAisle(getCurrentAisle());
@@ -378,7 +396,6 @@ public class Picker {
 
         if(type.equals("loading") || type.equals("unloading")){
             h.setTotalTime(restSecond);
-        }else{
         }
         h.setTask(type.toUpperCase());
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -26,11 +27,33 @@ public class Solution implements Cloneable{
     private int maxNumberOfBatches = 0;
     private ArrayList<DueTime> dueTimes;
     private boolean simulated;
+    private HashMap<Integer, Integer> traffic;
+    private HashMap<Integer, Integer> congestion;
 
     public Solution(){
         simulated = false;
         objectiveValues.add(0.0);
         objectiveValues.add(0.0);
+    }
+
+    public HashMap<Integer, Integer> getTraffic() {
+        return traffic;
+    }
+
+    public void setTraffic(HashMap<Integer, Integer> traffic) {
+        this.traffic = traffic;
+    }
+
+    public HashMap<Integer, Integer> getCongestion() {
+        return congestion;
+    }
+
+    public void setCongestion(HashMap<Integer, Integer> congestion) {
+        this.congestion = congestion;
+    }
+
+    public void setDominatedSolutions(ArrayList<Solution> dominatedSolutions) {
+        this.dominatedSolutions = dominatedSolutions;
     }
 
     public void setMaxNumberOfBatches(int maxNumberOfBatches) {
@@ -151,6 +174,8 @@ public class Solution implements Cloneable{
     }
 
     public void reset(){
-
+        this.dominationCount = 0;
+        this.rank = Integer.MAX_VALUE;
+        this.dominatedSolutions = new ArrayList<>();
     }
 }

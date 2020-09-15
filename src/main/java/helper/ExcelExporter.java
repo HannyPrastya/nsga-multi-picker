@@ -8,10 +8,15 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ExcelExporter {
     private String[] columns;
+    private List<List<Integer>> integerDataset;
+    private List<List<Double>> doubleDataset;
+    private List<HashMap<Integer, Integer>> hashIntegerDataset;
     private List<WaitingTime> waitingTimes;
     private List<History> histories;
     private Workbook workbook;
@@ -34,6 +39,14 @@ public class ExcelExporter {
 
     public List<History> getHistories() {
         return histories;
+    }
+
+    public void setDoubleDataset(List<List<Double>> doubleDataset) {
+        this.doubleDataset = doubleDataset;
+    }
+
+    public void setHashIntegerDataset(List<HashMap<Integer, Integer>> hashIntegerDataset) {
+        this.hashIntegerDataset = hashIntegerDataset;
     }
 
     public void startExportWaitingTimes(){
@@ -101,9 +114,57 @@ public class ExcelExporter {
         }
     }
 
-    public void export(){
+    public void startDoubleDataset(String name){
+        Sheet sheet = workbook.createSheet(name);
+
+        Row headerRow = sheet.createRow(0);
+        for(int i = 0; i < columns.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(columns[i]);
+        }
+
+        for (int i = 0; i < doubleDataset.size(); i++) {
+            List<Double> r = doubleDataset.get(i);
+            Row row = sheet.createRow(i + 1);
+
+            row.createCell(0).setCellValue(i+1);
+            for (int j = 0; j < r.size(); j++) {
+                row.createCell(j+1).setCellValue(r.get(j));
+            }
+        }
+
+        for(int i = 0; i < columns.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    public void startHashIntegerDataset(String name){
+        Sheet sheet = workbook.createSheet(name);
+
+        Row headerRow = sheet.createRow(0);
+        for(int i = 0; i < columns.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(columns[i]);
+        }
+
+        for (int i = 0; i < hashIntegerDataset.size(); i++) {
+            Row row = sheet.createRow(i + 1);
+            row.createCell(0).setCellValue(i+1);
+            HashMap<Integer, Integer> data = hashIntegerDataset.get(i);
+
+            for(Map.Entry<Integer,Integer> entry : data.entrySet()) {
+                row.createCell(entry.getKey()+1).setCellValue(entry.getValue());
+            }
+        }
+
+        for(int i = 0; i < columns.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    public void export(String filename){
         try {
-            FileOutputStream fileOut = new FileOutputStream("src/main/resources/result.xlsx");
+            FileOutputStream fileOut = new FileOutputStream("src/main/resources/"+filename+".xlsx");
             workbook.write(fileOut);
             fileOut.close();
             workbook.close();

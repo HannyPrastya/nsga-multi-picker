@@ -41,7 +41,6 @@ public class RoutingAlgorithm {
 
     public void routeUsingSShape(Batch batch){
 //        get left
-        ArrayList<Integer> routedAisles = new ArrayList<>();
         ArrayList<Integer> routedIDs = new ArrayList<>();
 
 //        left number
@@ -55,7 +54,6 @@ public class RoutingAlgorithm {
                 left = aisle == 0 ? 0 : (leftKey / (numberOfHorizontalAisle + 1)) == 0 ? 0 : (leftKey / (numberOfHorizontalAisle + 1));
             }
             if (aisle / (numberOfHorizontalAisle + 1) == left) {
-                routedAisles.add(aisle);
                 routedIDs.addAll(batch.getAisles().get(aisle));
 //                routedAisles.put(aisle, batch.getAisles().get(aisle));
             } else {
@@ -72,7 +70,6 @@ public class RoutingAlgorithm {
                     int groupID = i + (j * (numberOfHorizontalAisle + 1));
 //                    routedAisles.put(groupID, batch.getAisles().get(groupID));
                     if(batch.getAisles().containsKey(groupID)){
-                        routedAisles.add(groupID);
                         if(!toTop){
                             Collections.reverse(batch.getAisles().get(groupID));
                         }
@@ -88,7 +85,6 @@ public class RoutingAlgorithm {
                 for (int j = numberOfVerticalAisle - 1; j >= left + 1; j--) {
                     int groupID = i + (j * (numberOfHorizontalAisle + 1));
                     if(batch.getAisles().containsKey(groupID)){
-                        routedAisles.add(groupID);
                         if(!toTop){
                             Collections.reverse(batch.getAisles().get(groupID));
                         }

@@ -155,4 +155,8 @@ public class Meta {
 
         return locations;
     }
+
+    public static Integer calculateNumberOfAisle(Integer horizontal, Integer vertical){
+        return (horizontal + 1) * (vertical + 1);
+    }
 }

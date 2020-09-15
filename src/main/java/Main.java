@@ -4,7 +4,9 @@ import algorithm.Simulator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import constant.Configuration;
 import helper.Common;
+import helper.Meta;
 import model.*;
 import repository.DatasetRepository;
 import repository.WarehouseRepository;
@@ -23,8 +25,18 @@ public class Main {
 
 //        Number of Orders, Capacity in 100 = 1 kg, variant
         int[][] datasetList = {
-//                {50,200,3},
-                {200,200,1}
+//                TESTING
+//                {200,200,3}
+
+//                FINAL
+                {100, 100, 3, 4},
+                {100, 100, 3, 8},
+                {100, 100, 6, 4},
+                {100, 100, 6, 8},
+                {100, 200, 3, 4},
+                {100, 200, 3, 8},
+                {100, 200, 6, 4},
+                {100, 200, 6, 8}
         };
 
         for (DueTime d: dueTimes) {
@@ -32,21 +44,20 @@ public class Main {
         }
 
         WarehouseRepository wr = new WarehouseRepository();
-        wr.getWarehouse().setNumberOfRows(8);
-        wr.getWarehouse().setNumberOfHorizontalAisle(2);
-        wr.getWarehouse().setNumberOfVerticalAisle(4);
+        wr.getWarehouse().setNumberOfRows(Configuration.numberOfItemPerAisleSide);
+        wr.getWarehouse().setNumberOfHorizontalAisle(Configuration.numberOfHorizontalAisle);
+        wr.getWarehouse().setNumberOfVerticalAisle(Configuration.numberOfVerticalAisle);
 
         wr.createLocations();
         System.out.println("Number of Locations : "+(wr.getLocations().size() - 1));
         System.out.println("Number of Aisles : "+(wr.getWarehouse().getNumberOfVerticalAisle()+wr.getWarehouse().getNumberOfHorizontalAisle()));
 
-        int totalAisles = (wr.getWarehouse().getNumberOfHorizontalAisle() + 1) * (wr.getWarehouse().getNumberOfVerticalAisle() + 1);
+        int totalAisles = Meta.calculateNumberOfAisle(wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
 
 //        Create Dataset
-//        createDataset(wr, datasetList, dueTimes);
+        createDataset(wr, datasetList, dueTimes);
 
 //        Run Algorithm
-
         runAlgorithm(datasetList, wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles, wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
 
 //        Run Simulation
@@ -59,7 +70,7 @@ public class Main {
         int numberOfRun = 1;
         for (int i = 0; i < datasetList.length; i++) {
             int[] list = datasetList[i];
-            String filename = list[0]+"-"+list[1]+"-"+list[2]+".json";
+            String filename = list[0]+"-"+list[1]+"-"+list[2]+"-"+list[3]+".json";
 
             Dataset dataset = mapper.readValue(new File(Common.getResource(filename).getPath()), Dataset.class);
 
@@ -69,24 +80,13 @@ public class Main {
                 algo.setDataset(dataset);
 
                 algo.getSimulator().setLocations(locations);
-                algo.getSimulator().setNumberOfPicker(2);
+                algo.getSimulator().setNumberOfPicker(list[3]);
                 algo.getSimulator().setRows(rows);
                 algo.getSimulator().setNumberOfAisle(aisles);
                 algo.getRouter().setNumberOfHorizontalAisle(horizontal);
                 algo.getRouter().setNumberOfVerticalAisle(vertical);
                 algo.getRouter().setTotalAisle(aisles);
                 algo.start();
-//                try {
-//                    ProposedGeneticAlgorithm algo = new ProposedGeneticAlgorithm();
-//                    algo.setLocations(locations);
-//                    algo.setDataset(dataset);
-//                    algo.start();
-//                    //Converting the Object to JSONString
-//                    String jsonString = mapper.writeValueAsString(algo.getElite().getBatches());
-//                    System.out.println(jsonString);
-//                } catch (CloneNotSupportedException | ParseException e) {
-//                    e.printStackTrace();
-//                }
             }
         }
     }
@@ -107,6 +107,7 @@ public class Main {
             dataset.setNumberOfOrders(list[0]);
             dataset.setCapacity(list[1]);
             dataset.setNumberOfItemPerOrder(list[2]);
+            dataset.setNumberOfPickers(list[3]);
             dataset.setItems(items);
             dataset.setDueTimes(dueTimes);
             dr.createRandomOrders();
@@ -117,7 +118,7 @@ public class Main {
                 try (Writer writer = new BufferedWriter(
                     new OutputStreamWriter(
                         new FileOutputStream(
-                            "./src/main/resources/" + list[0] + "-" + list[1] + "-" + list[2] + ".json"
+                            "./src/main/resources/"+list[0]+"-"+list[1]+"-"+list[2]+"-"+list[3]+".json"
                         ),
                         StandardCharsets.UTF_8
                     )
@@ -154,11 +155,12 @@ public class Main {
         Simulator simulator = new Simulator();
         simulator.setLocations(locations);
         simulator.setBatches(batches);
-        simulator.setNumberOfPicker(2);
+        simulator.setNumberOfPicker(3);
         simulator.setRows(rows);
         simulator.setNumberOfAisle(aisles);
         simulator.start();
 
         simulator.exportToExcel();
+        System.out.println("last");
     }
 }
