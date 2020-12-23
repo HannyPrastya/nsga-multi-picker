@@ -20,6 +20,6 @@ public class Configuration {
     public static int totalRun = 3;
     public static int routeAlgorithm = S_SHAPE;
     public static int numberOfPopulation = 20;
-    public static int numberOfGeneration = 50;
+    public static int numberOfGeneration = 100;
 
 }

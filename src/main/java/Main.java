@@ -1,5 +1,6 @@
 import algorithm.NonSortedGeneticAlgorithm;
 import algorithm.ProposedGeneticAlgorithm;
+import algorithm.SKUNSGA;
 import algorithm.Simulator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -26,17 +27,28 @@ public class Main {
 //        Number of Orders, Capacity in 100 = 1 kg, variant
         int[][] datasetList = {
 //                TESTING
-//                {200,200,3}
+//                {100, 200, 3, 6},
+                {300, 200, 3, 6},
 
 //                FINAL
-                {100, 100, 3, 4},
-                {100, 100, 3, 8},
-                {100, 100, 6, 4},
-                {100, 100, 6, 8},
-                {100, 200, 3, 4},
-                {100, 200, 3, 8},
-                {100, 200, 6, 4},
-                {100, 200, 6, 8}
+//                {100, 200, 3, 2},
+//                {100, 200, 3, 4},
+//                {100, 200, 3, 6},
+//                {200, 200, 3, 2},
+//                {200, 200, 3, 4},
+//                {200, 200, 3, 6},
+//                {300, 200, 3, 2},
+//                {300, 200, 3, 4},
+//                {300, 200, 3, 6},
+//                {100, 300, 3, 2},
+//                {100, 300, 3, 4},
+//                {100, 300, 3, 6},
+//                {200, 300, 3, 2},
+//                {200, 300, 3, 4},
+//                {200, 300, 3, 6},
+//                {300, 300, 3, 2},
+//                {300, 300, 3, 4},
+//                {300, 300, 3, 6},
         };
 
         for (DueTime d: dueTimes) {
@@ -55,7 +67,7 @@ public class Main {
         int totalAisles = Meta.calculateNumberOfAisle(wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
 
 //        Create Dataset
-        createDataset(wr, datasetList, dueTimes);
+//        createDataset(wr, datasetList, dueTimes);
 
 //        Run Algorithm
         runAlgorithm(datasetList, wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles, wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
@@ -75,7 +87,7 @@ public class Main {
             Dataset dataset = mapper.readValue(new File(Common.getResource(filename).getPath()), Dataset.class);
 
             for (int j = 0; j < numberOfRun; j++) {
-                NonSortedGeneticAlgorithm algo = new NonSortedGeneticAlgorithm();
+                SKUNSGA algo = new SKUNSGA();
                 algo.setLocations(locations);
                 algo.setDataset(dataset);
 
@@ -162,5 +174,9 @@ public class Main {
 
         simulator.exportToExcel();
         System.out.println("last");
+    }
+
+    public static void test(Solution solution){
+        solution.setDistance(1.0);
     }
 }

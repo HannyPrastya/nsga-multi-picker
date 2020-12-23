@@ -6,12 +6,11 @@ import helper.ExcelExporter;
 import helper.Meta;
 import model.*;
 
-import javax.xml.crypto.Data;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class NonSortedGeneticAlgorithm {
+public class SKUNSGA {
     private static final int DOMINANT = 1;
     private static final int INFERIOR = 2;
     private static final int NON_DOMINATED = 3;
@@ -20,6 +19,7 @@ public class NonSortedGeneticAlgorithm {
     private List<List<Double>> reportF1;
     private Dataset dataset;
     private ArrayList<Location> locations;
+    private List<List<Integer>> groups;
     private ArrayList<Solution> population;
     private final int numberOfPopulation = Configuration.numberOfPopulation;
     private final int numberOfGeneration = Configuration.numberOfGeneration;
@@ -31,7 +31,7 @@ public class NonSortedGeneticAlgorithm {
     private final Simulator simulator;
     private final RoutingAlgorithm router;
 
-    public NonSortedGeneticAlgorithm() throws ParseException {
+    public SKUNSGA() throws ParseException {
         this.simulator = new Simulator();
         this.router = new RoutingAlgorithm();
         this.simulator.setLog(false);
@@ -57,27 +57,28 @@ public class NonSortedGeneticAlgorithm {
     public void start() throws CloneNotSupportedException, ParseException {
         report = new ArrayList<>();
         reportF1 = new ArrayList<>();
-        this.setClusters();
-        this.population = Meta.createNewPopulation(numberOfPopulation, dataset.getOrders().size());
+        this.groupingSKUs();
+//        this.setClusters();
+//        this.population = Meta.createNewPopulation(numberOfPopulation, dataset.getOrders().size());
 
         while (currentGeneration < numberOfGeneration) {
-            doOperators();
-            population.addAll(offsprings);
-            decoding();
-            routing();
-            simulate();
-            preparePopulation();
-            population = getChildrenFromCombinedPopulation();
-            report();
-            reportFrontier1();
-
-            if(log){
-                System.out.println("//after top population");
-                population.forEach(solution -> {
-                    System.out.println(solution.getObjectiveValues());
-                });
-                System.out.println("////////////////////////");
-            }
+//            doOperators();
+//            population.addAll(offsprings);
+//            decoding();
+//            routing();
+//            simulate();
+//            preparePopulation();
+//            population = getChildrenFromCombinedPopulation();
+//            report();
+//            reportFrontier1();
+//
+//            if(log){
+//                System.out.println("//after top population");
+//                population.forEach(solution -> {
+//                    System.out.println(solution.getObjectiveValues());
+//                });
+//                System.out.println("////////////////////////");
+//            }
             ++currentGeneration;
         }
 
@@ -88,6 +89,26 @@ public class NonSortedGeneticAlgorithm {
         });
 
         exportExcel();
+    }
+
+    public void groupingSKUs(){
+        this.groups = new ArrayList<>();
+        for (int i = 0; i < this.dataset.getOrders().size(); i++) {
+            Order order = this.dataset.getOrders().get(i);
+            boolean flag = true;
+            for (int j = 0; j < groups.size(); j++) {
+                if(dataset.getOrders().get(groups.get(j).get(0)).getItemIDs().get(0).equals(order.getItemIDs().get(0))){
+                    flag = false;
+                    this.groups.get(j).add(i);
+                    break;
+                }
+            }
+
+            if(flag){
+                groups.add(new ArrayList<>());
+                groups.get(groups.size() - 1).add(i);
+            }
+        }
     }
 
     public void report(){

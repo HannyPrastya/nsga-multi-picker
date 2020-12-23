@@ -233,6 +233,10 @@ public class Picker {
     }
 
     public void move(){
+        if(batches.size() == 0){
+            finish = true;
+            return;
+        }
         if(finish && state == 0){
             return;
         }
