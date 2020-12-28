@@ -14,7 +14,7 @@ public class Common {
 
     public static int randInt(int min, int max) {
         Random rand = new Random();
-        return rand.nextInt((max - min) + 1) + min;
+        return rand.ints(min, (max + 1)).findFirst().getAsInt();
     }
 
     public static int sortDoubleAsc(double el1, double el2){

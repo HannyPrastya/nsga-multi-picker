@@ -1,5 +1,6 @@
 package algorithm;
 
+import constant.Configuration;
 import helper.Common;
 import helper.ExcelExporter;
 import model.Batch;
@@ -25,7 +26,7 @@ public class Simulator {
 
     public Simulator() throws ParseException {
         log = true;
-        String dateStr = "2020-01-01 08:00:00";
+        String dateStr = Configuration.startTime;
         startDate = Common.convertStringToDate(dateStr);
     }
 

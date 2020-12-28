@@ -138,4 +138,44 @@ public class KMeans {
 
         return sum;
     }
+
+    public static double silhouette(Map<Centroid, List<Record>> clustered, Distance distance) {
+        double sumCluster = 0;
+        for (Map.Entry<Centroid, List<Record>> entry : clustered.entrySet()) {
+            Centroid centroid = entry.getKey();
+
+//            find neighborhood
+            List<Record> nearest = new ArrayList<>();
+            double min = 99999999990.0;
+            for (Map.Entry<Centroid, List<Record>> centroidListEntry : clustered.entrySet()) {
+                if(!centroid.equals(centroidListEntry.getKey())){
+                    if(distance.calculate(centroid.getCoordinates(), centroidListEntry.getKey().getCoordinates()) < min){
+                        nearest = centroidListEntry.getValue();
+                    }
+                }
+            }
+
+            double sumInCluster = 0.0;
+            for (Record record : entry.getValue()) {
+                double sumForA = 0.0;
+                for (Record recordInSameCluster : entry.getValue()) {
+                    sumForA += distance.calculate(recordInSameCluster.getFeatures(), record.getFeatures());
+                }
+//                System.out.println("A:"+sumForA);
+
+                double sumForB = 0.0;
+                for (Record recordInNearestCluster : nearest) {
+                    sumForB += distance.calculate(recordInNearestCluster.getFeatures(), record.getFeatures());
+                }
+//                System.out.println("B:"+sumForB);
+
+                double a = sumForA/(entry.getValue().size()-1);
+                double b = sumForB/nearest.size();
+                sumInCluster += (b - a)/Math.max(a, b);
+            }
+            sumCluster = sumInCluster/(entry.getValue().size());
+        }
+
+        return sumCluster/clustered.size();
+    }
 }

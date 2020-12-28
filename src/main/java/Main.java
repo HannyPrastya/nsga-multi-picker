@@ -1,7 +1,4 @@
-import algorithm.NonSortedGeneticAlgorithm;
-import algorithm.ProposedGeneticAlgorithm;
-import algorithm.SKUNSGA;
-import algorithm.Simulator;
+import algorithm.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,38 +19,14 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws IOException, ParseException, CloneNotSupportedException {
-        ArrayList<DueTime> dueTimes = createDueTimeHourly();
+//        ArrayList<DueTime> dueTimes = createDueTimeHourly();
 
-//        Number of Orders, Capacity in 100 = 1 kg, variant
-        int[][] datasetList = {
-//                TESTING
-//                {100, 200, 3, 6},
-                {300, 200, 3, 6},
+//        Number of Orders, Capacity in 10 = 1 kg, variant
+        int[][] datasetList = Configuration.datasetConfiguration;
 
-//                FINAL
-//                {100, 200, 3, 2},
-//                {100, 200, 3, 4},
-//                {100, 200, 3, 6},
-//                {200, 200, 3, 2},
-//                {200, 200, 3, 4},
-//                {200, 200, 3, 6},
-//                {300, 200, 3, 2},
-//                {300, 200, 3, 4},
-//                {300, 200, 3, 6},
-//                {100, 300, 3, 2},
-//                {100, 300, 3, 4},
-//                {100, 300, 3, 6},
-//                {200, 300, 3, 2},
-//                {200, 300, 3, 4},
-//                {200, 300, 3, 6},
-//                {300, 300, 3, 2},
-//                {300, 300, 3, 4},
-//                {300, 300, 3, 6},
-        };
-
-        for (DueTime d: dueTimes) {
-            System.out.println(d.getId()+" ==== "+d.getTime());
-        }
+//        for (DueTime d: dueTimes) {
+//            System.out.println(d.getId()+" ==== "+d.getTime());
+//        }
 
         WarehouseRepository wr = new WarehouseRepository();
         wr.getWarehouse().setNumberOfRows(Configuration.numberOfItemPerAisleSide);
@@ -66,11 +39,13 @@ public class Main {
 
         int totalAisles = Meta.calculateNumberOfAisle(wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
 
-//        Create Dataset
-//        createDataset(wr, datasetList, dueTimes);
-
-//        Run Algorithm
-        runAlgorithm(datasetList, wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles, wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
+        if(Configuration.renewDataset){
+//            Create Dataset
+            createDataset(wr, datasetList);
+        }else {
+//            Run Algorithm
+            runAlgorithm(datasetList, wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles, wr.getWarehouse().getNumberOfHorizontalAisle(), wr.getWarehouse().getNumberOfVerticalAisle());
+        }
 
 //        Run Simulation
 //        runSimulation(wr.getLocations(), wr.getWarehouse().getNumberOfRows(), totalAisles);
@@ -82,12 +57,25 @@ public class Main {
         int numberOfRun = 1;
         for (int i = 0; i < datasetList.length; i++) {
             int[] list = datasetList[i];
-            String filename = list[0]+"-"+list[1]+"-"+list[2]+"-"+list[3]+".json";
+            String filename = list[0]+"-"+list[2]+"-"+list[3]+".json";
 
-            Dataset dataset = mapper.readValue(new File(Common.getResource(filename).getPath()), Dataset.class);
+            Dataset dataset = mapper.readValue(new File(Common.getResource(filename).getPath().replaceAll("%20", " ")), Dataset.class);
 
             for (int j = 0; j < numberOfRun; j++) {
-                SKUNSGA algo = new SKUNSGA();
+
+                NonSortedGeneticAlgorithm algo = new NonSortedGeneticAlgorithm();
+                switch (Configuration.algorithm){
+                    case Configuration.BASED:
+                        algo = new BasedNSGA();
+                        break;
+                    case Configuration.SKU:
+                        algo = new SKUNSGA();
+                        break;
+                    case Configuration.PROPOSED:
+                        algo = new NonSortedGeneticAlgorithm();
+                        break;
+                }
+
                 algo.setLocations(locations);
                 algo.setDataset(dataset);
 
@@ -128,12 +116,52 @@ public class Main {
 
             try {
                 try (Writer writer = new BufferedWriter(
-                    new OutputStreamWriter(
-                        new FileOutputStream(
-                            "./src/main/resources/"+list[0]+"-"+list[1]+"-"+list[2]+"-"+list[3]+".json"
-                        ),
-                        StandardCharsets.UTF_8
-                    )
+                        new OutputStreamWriter(
+                                new FileOutputStream(
+                                        "./src/main/resources/"+list[0]+"-"+list[1]+"-"+list[2]+"-"+list[3]+".json"
+                                ),
+                                StandardCharsets.UTF_8
+                        )
+                )
+                ) {
+                    writer.write(json);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void createDataset(WarehouseRepository wr, int[][] datasetList) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+
+        wr.createRandomItems();
+        System.out.println("Number of Items : "+wr.getItems().size());
+
+        ArrayList<Item> items = wr.getItems();
+
+        for (int[] list : datasetList) {
+//            get dataset
+            DatasetRepository dr = new DatasetRepository();
+//            set dataset
+            Dataset dataset = dr.getDataset();
+            dataset.setNumberOfOrders(list[0]);
+            dataset.setCapacity(list[1]);
+            dataset.setNumberOfItemPerOrder(list[2]);
+            dataset.setNumberOfPickers(list[3]);
+            dataset.setItems(items);
+            dr.createRandomOrdersWithRandomDueTime(list[4]);
+
+            String json = mapper.writeValueAsString(dataset);
+
+            try {
+                try (Writer writer = new BufferedWriter(
+                        new OutputStreamWriter(
+                                new FileOutputStream(
+                                        "./src/main/resources/"+list[0]+"-"+list[2]+"-"+list[3]+".json"
+                                ),
+                                StandardCharsets.UTF_8
+                        )
                 )
                 ) {
                     writer.write(json);
@@ -147,7 +175,7 @@ public class Main {
     public static ArrayList<DueTime> createDueTimeHourly() throws ParseException {
         ArrayList<DueTime> list = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
-        cal.setTime(Common.convertStringToDate("2020-01-01 08:00:00"));
+        cal.setTime(Common.convertStringToDate(Configuration.startTime));
 
         for (int i = 1; i <= 4; i++) {
             DueTime t = new DueTime();

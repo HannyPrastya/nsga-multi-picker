@@ -4,37 +4,45 @@ import constant.Configuration;
 import helper.Common;
 import helper.ExcelExporter;
 import helper.Meta;
+import kmeans.*;
 import model.*;
 
 import javax.xml.crypto.Data;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import static java.util.Comparator.naturalOrder;
+import static java.util.Comparator.nullsLast;
 
 public class NonSortedGeneticAlgorithm {
-    private static final int DOMINANT = 1;
-    private static final int INFERIOR = 2;
-    private static final int NON_DOMINATED = 3;
+    public static final int DOMINANT = 1;
+    public static final int INFERIOR = 2;
+    public static final int NON_DOMINATED = 3;
 
-    private List<List<Double>> report;
-    private List<List<Double>> reportF1;
-    private Dataset dataset;
-    private ArrayList<Location> locations;
-    private ArrayList<Solution> population;
-    private final int numberOfPopulation = Configuration.numberOfPopulation;
-    private final int numberOfGeneration = Configuration.numberOfGeneration;
-    private ArrayList<Solution> offsprings;
-    private int crossover = 60;
-    int currentGeneration = 0;
-    boolean log = false;
+    public List<List<Double>> report;
+    public List<List<Double>> reportF1;
+    public Dataset dataset;
+    public ArrayList<Location> locations;
+    public ArrayList<Solution> population;
+    public final int numberOfPopulation = Configuration.numberOfPopulation;
+    public final int numberOfGeneration = Configuration.numberOfGeneration;
+    public ArrayList<Solution> offsprings;
+    public int crossover = 60;
+    public List<List<Record>> clusters = new ArrayList<>();
+    public List<DueTime> timeClusters = new ArrayList<>();
+    public int currentGeneration = 0;
+    public boolean log = Configuration.isLogEnabled;
 
-    private final Simulator simulator;
-    private final RoutingAlgorithm router;
+    public final Simulator simulator;
+    public final RoutingAlgorithm router;
 
     public NonSortedGeneticAlgorithm() throws ParseException {
         this.simulator = new Simulator();
         this.router = new RoutingAlgorithm();
-        this.simulator.setLog(false);
+        this.simulator.setLog(Configuration.isLogEnabled);
     }
 
     public void setDataset(Dataset dataset) {
@@ -83,8 +91,9 @@ public class NonSortedGeneticAlgorithm {
 
         System.out.println("LAST");
         population.forEach(solution -> {
-            System.out.println(solution.getRank());
-            System.out.println(solution.getDominatedSolutions().size());
+            if (solution.getRank() == 1){
+                System.out.println(solution.getRank());
+            }
         });
 
         exportExcel();
@@ -289,19 +298,49 @@ public class NonSortedGeneticAlgorithm {
     }
 
     private void setClusters() {
-        this.dataset.getOrders().sort(Comparator.comparing(Order::getDueTimeID));
+        this.dataset.getOrders().sort(Comparator.comparing(Order::getDueTime));
 
-        this.dataset.getDueTimes().get(0).setStart(0);
-        this.dataset.getDueTimes().get(this.dataset.getDueTimes().size() - 1).setEnd(this.dataset.getOrders().size() - 1);
+        List<Record> records = new ArrayList<>();
+        for (Integer i = 0; i < dataset.getOrders().size(); i++) {
+            Map<String, Double> features = new HashMap<>();
+            features.put("dueTime", dataset.getOrders().get(i).getDueTime());
+            records.add(new Record(i.toString(), features));
+        }
 
-        int dueTimeID = this.dataset.getDueTimes().get(0).getId();
-        for (int i = 0; i < this.dataset.getOrders().size(); i++) {
-            Order o = this.dataset.getOrders().get(i);
-            if (dueTimeID != o.getDueTimeID()) {
-                this.dataset.getDueTimes().get(o.getDueTimeID() - 1).setStart(i);
-                this.dataset.getDueTimes().get(o.getDueTimeID() - 2).setEnd(i - 1);
-                dueTimeID = o.getDueTimeID();
+        Distance distance = new EuclideanDistance();
+        Map<Centroid, List<Record>> selected = new HashMap<>();
+        double min = -2;
+        for (int k = 4; k <= 16; k++) {
+            Map<Centroid, List<Record>> clusters = KMeans.fit(records, k, distance, 1000);
+            double s = KMeans.silhouette(clusters, distance);
+            if(s > min){
+                selected = clusters;
+                min = s;
             }
+        }
+
+        for (Map.Entry<Centroid, List<Record>> centroidListEntry : selected.entrySet()) {
+            clusters.add(centroidListEntry.getValue());
+        }
+
+        clusters = clusters.stream()
+                .sorted(Comparator.comparingDouble(o -> o.get(0).getFeatures().get("dueTime")))
+                .collect(Collectors.toList());
+
+        timeClusters = new ArrayList<>();
+        int index = 0;
+        int dueTimeID = 0;
+        for (List<Record> cluster : clusters) {
+            DueTime timeCluster = new DueTime();
+            timeCluster.setId(dueTimeID);
+            timeCluster.setStart(index);
+            for (Record record : cluster) {
+                dataset.getOrders().get(index).setDueTimeID(dueTimeID);
+               ++index;
+            }
+            timeCluster.setEnd(index-1);
+            timeClusters.add(timeCluster);
+            ++dueTimeID;
         }
     }
 
@@ -325,9 +364,9 @@ public class NonSortedGeneticAlgorithm {
             Solution offA = population.get(key1).clone();
             Solution offB = population.get(key2).clone();
 
-            int key = Common.randInt(0, dataset.getDueTimes().size() - 1);
+            int key = Common.randInt(0, clusters.size() - 1);
 
-            for (Integer i = dataset.getDueTimes().get(key).getStart(); i <= dataset.getDueTimes().get(key).getEnd(); i++) {
+            for (Integer i = timeClusters.get(key).getStart(); i <= timeClusters.get(key).getEnd(); i++) {
                 Integer temp = offA.getChromosome().get(i);
                 offA.getChromosome().set(i, offB.getChromosome().get(i));
                 offB.getChromosome().set(i, temp);
@@ -346,15 +385,15 @@ public class NonSortedGeneticAlgorithm {
             range.remove(key);
             Solution off = population.get(key).clone();
 
-            int keyDueTime = Common.randInt(0, dataset.getDueTimes().size() - 1);
+            int keyDueTime = Common.randInt(0, timeClusters.size() - 1);
 
             ArrayList<Integer> list = new ArrayList<>();
-            for (Integer i = dataset.getDueTimes().get(keyDueTime).getStart(); i <= dataset.getDueTimes().get(keyDueTime).getEnd(); i++) {
+            for (Integer i = timeClusters.get(keyDueTime).getStart(); i <= timeClusters.get(keyDueTime).getEnd(); i++) {
                 list.add(off.getChromosome().get(i));
             }
             Collections.shuffle(list);
             int j = 0;
-            for (Integer i = dataset.getDueTimes().get(keyDueTime).getStart(); i <= dataset.getDueTimes().get(keyDueTime).getEnd(); i++) {
+            for (Integer i = timeClusters.get(keyDueTime).getStart(); i <= timeClusters.get(keyDueTime).getEnd(); i++) {
                 off.getChromosome().set(i, list.get(j));
                 ++j;
             }
@@ -373,7 +412,7 @@ public class NonSortedGeneticAlgorithm {
             if(!sol.isSimulated()){
                 ArrayList<DueTime> dues = new ArrayList<>();
                 int idx = 0;
-                DueTime dueTime = dataset.getDueTimes().get(idx).clone();
+                DueTime dueTime = timeClusters.get(idx).clone();
                 dueTime.setOrders(new ArrayList<>());
                 for (int i = 0; i < sol.getChromosome().size(); i++) {
                     int priority = sol.getChromosome().get(i);
@@ -390,7 +429,7 @@ public class NonSortedGeneticAlgorithm {
                         dues.add(dueTime.clone());
                         if (i != sol.getChromosome().size() - 1) {
                             ++idx;
-                            dueTime = dataset.getDueTimes().get(idx);
+                            dueTime = timeClusters.get(idx);
                             dueTime.setOrders(new ArrayList<>());
                         }
                     }
@@ -450,7 +489,7 @@ public class NonSortedGeneticAlgorithm {
         }
     }
 
-    public void simulate() {
+    public void simulate() throws ParseException {
         for (Solution sol : population) {
             if(!sol.isSimulated()){
                 this.simulator.setBatches(sol.getBatches());
@@ -469,19 +508,19 @@ public class NonSortedGeneticAlgorithm {
                     }
                     for (Batch batch : picker.getBatches()) {
                         for (Order order : batch.getOrders()) {
-                            long tard = batch.getEnd().getTime() - this.dataset.getDueTimes().get(order.getDueTimeID() - 1).getTimeObject().getTime();
-                            tardiness += tard > 0 ? ((double) tard / 1000) : 0;
+                            double tard = ((double) (batch.getEnd().getTime() - Common.convertStringToDate(Configuration.startTime).getTime())/1000) - order.getDueTime() - 3600;
+                            tardiness += tard > 0 ? tard : 0;
                         }
                     }
                 }
 
                 if (sol.getObjectiveValues().size() == 2) {
                     sol.getObjectiveValues().set(0, totalWaitingTime);
-                    sol.getObjectiveValues().set(1, tardiness);
+                    sol.getObjectiveValues().set(1, tardiness > 0 ? tardiness/dataset.getOrders().size() : tardiness);
                 } else {
                     sol.setObjectiveValues(new ArrayList<>());
                     sol.getObjectiveValues().add(totalWaitingTime);
-                    sol.getObjectiveValues().add(tardiness);
+                    sol.getObjectiveValues().add(tardiness > 0 ? tardiness/dataset.getOrders().size() : tardiness);
                 }
                 sol.setSimulated(true);
             }

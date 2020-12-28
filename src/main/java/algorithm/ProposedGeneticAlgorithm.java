@@ -1,5 +1,6 @@
 package algorithm;
 
+import constant.Configuration;
 import helper.Common;
 import helper.Meta;
 import model.*;
@@ -215,7 +216,7 @@ public class ProposedGeneticAlgorithm {
         int loadingTime = 10;
         int unloadingTime = 10;
 
-        String dateStr = "2020-01-01 08:00:00";
+        String dateStr = Configuration.startTime;
         Date date = Common.convertStringToDate(dateStr);
         for (Solution sol: this.population) {
             Calendar calendar = Calendar.getInstance();

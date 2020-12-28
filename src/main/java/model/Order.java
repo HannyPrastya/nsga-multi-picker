@@ -28,6 +28,8 @@ public class Order implements  Cloneable{
     private int totalWeight;
     @JsonProperty("dueTimeID")
     private int dueTimeID;
+    @JsonProperty("dueTime")
+    private Double dueTime;
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
@@ -67,6 +69,16 @@ public class Order implements  Cloneable{
     @JsonProperty("itemIDs")
     public void setItemIDs(List<Integer> itemIDs) {
         this.itemIDs = itemIDs;
+    }
+
+    @JsonProperty("dueTime")
+    public Double getDueTime() {
+        return dueTime;
+    }
+
+    @JsonProperty("dueTime")
+    public void setDueTime(Double dueTime) {
+        this.dueTime = dueTime;
     }
 
     @JsonAnyGetter
